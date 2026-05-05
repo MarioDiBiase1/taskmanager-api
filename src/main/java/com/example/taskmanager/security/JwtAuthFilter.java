@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -30,6 +31,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        System.out.println("🔥 JWT FILTER ATTIVO");
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -38,11 +41,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
+        System.out.println("TOKEN: " + token);
 
         String username;
+
         try {
             username = jwtService.extractUsername(token);
         } catch (Exception e) {
+            System.out.println("❌ TOKEN NON VALIDO");
             filterChain.doFilter(request, response);
             return;
         }
@@ -52,16 +58,32 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 .findFirst()
                 .orElse(null);
 
-        if (user != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (user == null) {
+            System.out.println("❌ USER NON TROVATO");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        System.out.println("👤 USER: " + user.getUsername());
+        System.out.println("🎭 ROLE: " + user.getRole());
+
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(
-                            user, // 👈 IMPORTANTISSIMO: user object
+                            user.getUsername(),
                             null,
                             List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                     );
 
+            authToken.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+
             SecurityContextHolder.getContext().setAuthentication(authToken);
+
+            System.out.println("✅ AUTH SET: " + authToken);
+            System.out.println("👉 AUTHORITIES: " + authToken.getAuthorities());
         }
 
         filterChain.doFilter(request, response);

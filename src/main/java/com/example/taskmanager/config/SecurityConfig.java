@@ -30,6 +30,15 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
 
+                        // 🔓 SWAGGER (FONDAMENTALE)
+                        .requestMatchers(
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-ui",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
                         // 🔓 PUBBLICO
                         .requestMatchers("/auth/**").permitAll()
 
@@ -37,7 +46,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/users").permitAll()
 
                         // 🔐 SOLO ADMIN
-                        .requestMatchers("/users/**").hasRole("ADMIN")
+                        .requestMatchers("/users", "/users/**").hasRole("ADMIN")
 
                         .requestMatchers("/debug/**").permitAll()
 
